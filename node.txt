@@ -1,0 +1,75 @@
+Entities and Relationships
+-------------
+Courses
+
+Attributes: id, name, description, max_degree, min_degree
+Relationships:
+One-to-Many with Questions (course_id)
+One-to-Many with Exams (course_id)
+
+
+----------------------------
+Instructors
+
+Attributes: id, name, email, is_training_manager
+Relationships:
+One-to-Many with Exams (instructor_id)
+---------------------
+Students
+
+Attributes: id, name, email, intake, branch, track
+Relationships:
+One-to-Many with Student Answers (student_id)
+
+-----------------------------
+Questions
+
+Attributes: id, course_id, question_text, question_type, correct_answer, best_accepted_answer
+Relationships:
+Many-to-One with Courses (course_id)
+Many-to-Many with Exams through Exam Questions (question_id)
+
+----------------------------
+Exams
+
+Attributes: id, course_id, instructor_id, exam_type, intake, branch, track, start_time, end_time, total_time, allowance_options
+Relationships:
+Many-to-One with Courses (course_id)
+Many-to-One with Instructors (instructor_id)
+Many-to-Many with Questions through Exam Questions (exam_id)
+One-to-Many with Student Answers (exam_id)
+
+---------------------------------
+Exam Questions
+
+Attributes: exam_id, question_id, degree
+Relationships:
+Many-to-One with Exams (exam_id)
+Many-to-One with Questions (question_id)
+
+---------------------------------------------------
+Student Answers
+
+Attributes: exam_id, student_id, question_id, student_answer, is_correct
+Relationships:
+Many-to-One with Exams (exam_id)
+Many-to-One with Students (student_id)
+Many-to-One with Questions (question_id)
+------------------------------------------------------------
+User Accounts
+
+Attributes: id, username, password, role
+
+--------------------------
+Branches
+
+Attributes: id, name
+Relationships:
+One-to-Many with Tracks (branch_id)
+
+------------------------------------------------------------
+Tracks
+
+Attributes: id, name, branch_id
+Relationships:
+Many-to-One with Branches (branch_id)

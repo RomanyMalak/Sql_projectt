@@ -1,0 +1,99 @@
+
+
+USE Examination_System_Database;
+GO
+
+CREATE TABLE courses (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(MAX) NOT NULL,
+    description NVARCHAR(MAX) NULL,
+    max_degree INT NOT NULL,
+    min_degree INT NOT NULL
+);
+
+CREATE TABLE instructors (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    is_training_manager BIT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE students (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    intake NVARCHAR(100) NULL,
+    branch NVARCHAR(100) NULL,
+    track NVARCHAR(100) NULL
+);
+
+CREATE TABLE questions (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    course_id BIGINT NULL,
+    question_text NVARCHAR(MAX) NOT NULL,
+    question_type NVARCHAR(50) NULL,
+    correct_answer NVARCHAR(MAX) NULL,
+    best_accepted_answer NVARCHAR(MAX) NULL,
+    CONSTRAINT FK_questions_courses FOREIGN KEY (course_id) REFERENCES courses(id),
+    CONSTRAINT CK_questions_question_type CHECK (question_type IN ('Multiple Choice', 'True/False', 'Text'))
+);
+
+CREATE TABLE exams (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    course_id BIGINT NULL,
+    instructor_id BIGINT NULL,
+    exam_type NVARCHAR(50) NULL,
+    intake NVARCHAR(100) NULL,
+    branch NVARCHAR(100) NULL,
+    track NVARCHAR(100) NULL,
+    start_time DATETIMEOFFSET NULL,
+    end_time DATETIMEOFFSET NULL,
+    total_time TIME NULL, -- SQL Server بديل عملي لـ interval
+    allowance_options NVARCHAR(MAX) NULL,
+    CONSTRAINT FK_exams_courses FOREIGN KEY (course_id) REFERENCES courses(id),
+    CONSTRAINT FK_exams_instructors FOREIGN KEY (instructor_id) REFERENCES instructors(id),
+    CONSTRAINT CK_exams_exam_type CHECK (exam_type IN ('Exam', 'Corrective'))
+);
+
+CREATE TABLE exam_questions (
+    exam_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    degree INT NULL,
+    CONSTRAINT PK_exam_questions PRIMARY KEY (exam_id, question_id),
+    CONSTRAINT FK_exam_questions_exams FOREIGN KEY (exam_id) REFERENCES exams(id),
+    CONSTRAINT FK_exam_questions_questions FOREIGN KEY (question_id) REFERENCES questions(id)
+);
+
+CREATE TABLE student_answers (
+    exam_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    student_answer NVARCHAR(MAX) NULL,
+    is_correct BIT NULL,
+    CONSTRAINT PK_student_answers PRIMARY KEY (exam_id, student_id, question_id),
+    CONSTRAINT FK_student_answers_exams FOREIGN KEY (exam_id) REFERENCES exams(id),
+    CONSTRAINT FK_student_answers_students FOREIGN KEY (student_id) REFERENCES students(id),
+    CONSTRAINT FK_student_answers_questions FOREIGN KEY (question_id) REFERENCES questions(id)
+);
+
+CREATE TABLE user_accounts (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    username NVARCHAR(255) NOT NULL UNIQUE,
+    [password] NVARCHAR(255) NOT NULL,
+    [role] NVARCHAR(50) NULL,
+    CONSTRAINT CK_user_accounts_role CHECK ([role] IN ('Admin', 'Training Manager', 'Instructor', 'Student'))
+);
+
+CREATE TABLE branches (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL
+);
+
+CREATE TABLE tracks (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    branch_id BIGINT NULL,
+    CONSTRAINT FK_tracks_branches FOREIGN KEY (branch_id) REFERENCES branches(id)
+);
+
+SELECT 'sqlserver' dbms,t.TABLE_CATALOG,t.TABLE_SCHEMA,t.TABLE_NAME,c.COLUMN_NAME,c.ORDINAL_POSITION,c.DATA_TYPE,c.CHARACTER_MAXIMUM_LENGTH,n.CONSTRAINT_TYPE,k2.TABLE_SCHEMA,k2.TABLE_NAME,k2.COLUMN_NAME FROM INFORMATION_SCHEMA.TABLES t LEFT JOIN INFORMATION_SCHEMA.COLUMNS c ON t.TABLE_CATALOG=c.TABLE_CATALOG AND t.TABLE_SCHEMA=c.TABLE_SCHEMA AND t.TABLE_NAME=c.TABLE_NAME LEFT JOIN(INFORMATION_SCHEMA.KEY_COLUMN_USAGE k JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS n ON k.CONSTRAINT_CATALOG=n.CONSTRAINT_CATALOG AND k.CONSTRAINT_SCHEMA=n.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME=n.CONSTRAINT_NAME LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r ON k.CONSTRAINT_CATALOG=r.CONSTRAINT_CATALOG AND k.CONSTRAINT_SCHEMA=r.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME=r.CONSTRAINT_NAME)ON c.TABLE_CATALOG=k.TABLE_CATALOG AND c.TABLE_SCHEMA=k.TABLE_SCHEMA AND c.TABLE_NAME=k.TABLE_NAME AND c.COLUMN_NAME=k.COLUMN_NAME LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k2 ON k.ORDINAL_POSITION=k2.ORDINAL_POSITION AND r.UNIQUE_CONSTRAINT_CATALOG=k2.CONSTRAINT_CATALOG AND r.UNIQUE_CONSTRAINT_SCHEMA=k2.CONSTRAINT_SCHEMA AND r.UNIQUE_CONSTRAINT_NAME=k2.CONSTRAINT_NAME WHERE t.TABLE_TYPE='BASE TABLE';
