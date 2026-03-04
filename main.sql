@@ -235,3 +235,5 @@ CREATE TABLE Result (
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
     FOREIGN KEY (CourseID) REFERENCES Course(CourseID)
 );
+
+ALTER TABLE Exam ADD AllowanceOptions NVARCHAR(MAX);

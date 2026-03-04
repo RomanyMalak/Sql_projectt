@@ -1,0 +1,503 @@
+====================================================================
+  EXAMINATION SYSTEM DATABASE - OBJECTS DESCRIPTION FILE
+  Tables Covered: Student, Course, InstructorCourse,
+                  Question, Choice, TextAnswer
+====================================================================
+
+
+--------------------------------------------------------------------
+SECTION 1: INDEXES (13 Objects)
+--------------------------------------------------------------------
+
+1.  IX_Student_BranchID
+    Table  : Student
+    Column : BranchID
+    Purpose: Speeds up queries that filter or join students by their
+             branch. Used frequently when listing students per branch.
+
+2.  IX_Student_TrackID
+    Table  : Student
+    Column : TrackID
+    Purpose: Speeds up queries that filter or join students by their
+             track. Supports track-based student lookups.
+
+3.  IX_Student_IntakeID
+    Table  : Student
+    Column : IntakeID
+    Purpose: Speeds up queries that filter students by intake year/
+             group. Used when listing all students in one intake.
+
+4.  IX_Student_Name
+    Table  : Student
+    Column : Name
+    Purpose: Optimizes name-based search queries (e.g., searching
+             a student by partial or full name).
+
+5.  IX_Course_CourseName
+    Table  : Course
+    Column : CourseName
+    Purpose: Speeds up course name search queries. Used when
+             instructors or admins search for a course by name.
+
+6.  IX_InstructorCourse_InstructorID
+    Table  : InstructorCourse
+    Column : InstructorID
+    Purpose: Improves performance when retrieving all courses
+             assigned to a specific instructor.
+
+7.  IX_InstructorCourse_CourseID
+    Table  : InstructorCourse
+    Column : CourseID
+    Purpose: Improves performance when retrieving all instructors
+             assigned to a specific course across years.
+
+8.  IX_InstructorCourse_Year
+    Table  : InstructorCourse
+    Column : Year
+    Purpose: Speeds up queries filtering assignments by academic
+             year (e.g., all assignments in year 2024).
+
+9.  IX_InstructorCourse_Composite
+    Table  : InstructorCourse
+    Columns: InstructorID, CourseID, Year
+    Purpose: Composite index for the most common lookup pattern:
+             finding a specific instructor-course-year combination.
+             Also prevents logical duplicates efficiently.
+
+10. IX_Question_CourseID
+    Table  : Question
+    Column : CourseID
+    Purpose: Speeds up retrieval of all questions belonging to a
+             specific course. Critical for exam generation.
+
+11. IX_Question_InstructorID
+    Table  : Question
+    Column : InstructorID
+    Purpose: Speeds up queries that retrieve all questions added
+             by a specific instructor.
+
+12. IX_Question_QuestionType
+    Table  : Question
+    Column : QuestionType
+    Purpose: Optimizes filtering questions by type (MCQ, TF, Text).
+             Frequently used during exam creation.
+
+13. IX_Question_Course_Type
+    Table  : Question
+    Columns: CourseID, QuestionType
+    Purpose: Composite index for the most common question pool
+             query: get all questions of a specific type for a
+             specific course. Core index for exam generation.
+
+14. IX_Choice_QuestionID
+    Table  : Choice
+    Column : QuestionID
+    Purpose: Speeds up retrieving all choices for a given question.
+             Used every time a question with its options is displayed.
+
+15. IX_Choice_IsCorrect
+    Table  : Choice
+    Columns: QuestionID, IsCorrect
+    Purpose: Optimizes queries that need to find only the correct
+             choice for a question (used during answer checking).
+
+16. IX_TextAnswer_QuestionID
+    Table  : TextAnswer
+    Column : QuestionID
+    Purpose: Speeds up retrieval of accepted answers for a text
+             question. Used when validating student text responses.
+
+
+--------------------------------------------------------------------
+SECTION 2: VIEWS (9 Objects)
+--------------------------------------------------------------------
+
+1.  vw_StudentDetails
+    Tables : Student, Branch, Track, Intake
+    Purpose: Provides a complete, readable profile for each student
+             by joining the Student table with Branch, Track, and
+             Intake lookup tables. Eliminates the need for manual
+             joins when displaying student information.
+
+2.  vw_CourseInfo
+    Table  : Course
+    Purpose: Displays all course information including a computed
+             column DegreeRange (MaxDegree - MinDegree). Gives a
+             quick overview of course degree boundaries.
+
+3.  vw_InstructorCourseDetails
+    Tables : InstructorCourse, Instructor, Course, Branch,
+             Track, Intake
+    Purpose: Shows the full context of each instructor-course
+             assignment: instructor name, course name, academic year,
+             branch, track, and intake. Used by the training manager
+             to review all teaching assignments.
+
+4.  vw_QuestionPool
+    Tables : Question, Course, Instructor
+    Purpose: Displays the complete question pool with human-readable
+             course names and instructor names instead of raw IDs.
+             Used by instructors when browsing available questions.
+
+5.  vw_QuestionChoices
+    Tables : Question, Choice, Course
+    Purpose: Shows MCQ and TF questions together with all their
+             answer choices and which choice is correct. Used to
+             display full question details during exam review.
+
+6.  vw_TextQuestions
+    Tables : Question, TextAnswer, Course, Instructor
+    Purpose: Shows all text-type questions alongside their accepted
+             answers and the instructor who created them. Used by
+             instructors when reviewing open-ended questions.
+
+7.  vw_QuestionCountByCourseType
+    Tables : Question, Course
+    Purpose: Aggregated view showing how many questions of each type
+             (MCQ, TF, Text) exist per course. Helps instructors
+             know how many questions are available before building
+             an exam.
+
+8.  vw_InstructorCourseList
+    Tables : InstructorCourse, Instructor, Course
+    Purpose: Lists every course taught by each instructor across all
+             years. Used for reporting and assignment management by
+             the training manager.
+
+9.  vw_StudentsByTrack
+    Tables : Student, Track, Branch, Intake
+    Purpose: Aggregated view showing the count of students grouped
+             by track, branch, and intake. Used for administrative
+             reporting and capacity planning.
+
+
+--------------------------------------------------------------------
+SECTION 3: SCALAR FUNCTIONS (6 Objects)
+--------------------------------------------------------------------
+
+1.  fn_GetQuestionCount
+    Parameters : @CourseID INT, @QuestionType NVARCHAR(20) [optional]
+    Returns    : INT
+    Purpose    : Returns the total number of questions in the pool
+                 for a given course. If @QuestionType is provided,
+                 counts only questions of that type. Used to validate
+                 whether enough questions exist before generating
+                 an exam.
+
+2.  fn_GetCorrectChoice
+    Parameters : @QuestionID INT
+    Returns    : NVARCHAR(500)
+    Purpose    : Returns the text of the correct choice for a given
+                 MCQ or TF question. Used when displaying answer keys
+                 or checking student responses.
+
+3.  fn_IsAnswerCorrect
+    Parameters : @QuestionID INT, @ChoiceID INT
+    Returns    : BIT (1 = Correct, 0 = Wrong)
+    Purpose    : Checks whether a specific choice selected by a
+                 student is the correct answer for a question.
+                 Core function used in automatic answer grading.
+
+4.  fn_GetCourseName
+    Parameters : @CourseID INT
+    Returns    : NVARCHAR(200)
+    Purpose    : Returns the name of a course given its ID.
+                 Used as a helper in reports and messages where
+                 only the course name is needed.
+
+5.  fn_CheckTextAnswer
+    Parameters : @QuestionID INT, @StudentAnswer NVARCHAR(MAX)
+    Returns    : BIT (1 = Likely Match, 0 = No Match)
+    Purpose    : Performs a basic keyword match between the student's
+                 text answer and the stored accepted answer. Returns 1
+                 if the accepted answer text is found within the
+                 student's response. Assists instructors in the
+                 initial filtering of text answers before manual
+                 review.
+
+6.  fn_GetCourseInstructor
+    Parameters : @CourseID INT, @Year INT
+    Returns    : NVARCHAR(200)
+    Purpose    : Returns the name of the instructor assigned to a
+                 course in a specific academic year. Used in exam
+                 and report headers.
+
+
+--------------------------------------------------------------------
+SECTION 4: TABLE-VALUED FUNCTIONS (4 Objects)
+--------------------------------------------------------------------
+
+1.  fn_GetCourseQuestions
+    Parameters : @CourseID INT, @QuestionType NVARCHAR(20) [optional]
+    Returns    : Table (QuestionID, QuestionText, QuestionType,
+                        InstructorName)
+    Purpose    : Returns all questions for a course, optionally
+                 filtered by type. Used by instructors when manually
+                 browsing and selecting questions for an exam.
+
+2.  fn_GetRandomQuestions
+    Parameters : @CourseID INT, @QuestionType NVARCHAR(20),
+                 @Count INT
+    Returns    : Table (QuestionID, QuestionText, QuestionType)
+    Purpose    : Returns a specified number of randomly selected
+                 questions of a given type for a course. Core
+                 function for automatic exam generation. Uses
+                 NEWID() to ensure randomness on each call.
+
+3.  fn_GetQuestionChoices
+    Parameters : @QuestionID INT
+    Returns    : Table (ChoiceID, ChoiceText, IsCorrect)
+    Purpose    : Returns all answer choices for a specific question.
+                 Used when rendering MCQ or TF questions to students
+                 and when displaying question details to instructors.
+
+4.  fn_GetStudentsByContext
+    Parameters : @BranchID INT [optional], @TrackID INT [optional],
+                 @IntakeID INT [optional]
+    Returns    : Table (StudentID, Name, Email, BranchName,
+                        TrackName, IntakeName)
+    Purpose    : Returns students filtered by any combination of
+                 branch, track, and intake. Used by the training
+                 manager and instructors to find eligible students
+                 for a specific exam or class.
+
+
+--------------------------------------------------------------------
+SECTION 5: STORED PROCEDURES (27 Objects)
+--------------------------------------------------------------------
+
+--- STUDENT PROCEDURES (5) ---
+
+1.  sp_AddStudent
+    Parameters : @UserID, @Name, @Email, @BranchID, @TrackID,
+                 @IntakeID
+    Purpose    : Registers a new student in the system. Validates
+                 that the UserID is not already linked to another
+                 student before inserting. Returns the new StudentID.
+
+2.  sp_UpdateStudent
+    Parameters : @StudentID, @Name [opt], @Email [opt],
+                 @BranchID [opt], @TrackID [opt], @IntakeID [opt]
+    Purpose    : Updates one or more fields for an existing student.
+                 Uses ISNULL pattern so only provided parameters are
+                 updated; others retain their current values.
+
+3.  sp_DeleteStudent
+    Parameters : @StudentID
+    Purpose    : Deletes a student record from the system after
+                 verifying the student exists. Used by the training
+                 manager.
+
+4.  sp_SearchStudents
+    Parameters : @Name [opt], @BranchID [opt], @TrackID [opt],
+                 @IntakeID [opt]
+    Purpose    : Flexible student search supporting any combination
+                 of filters. Returns full student details with branch,
+                 track, and intake names. All parameters are optional
+                 so calling with no parameters returns all students.
+
+5.  sp_GetStudentByID
+    Parameters : @StudentID
+    Purpose    : Retrieves full profile details for a single student
+                 using the vw_StudentDetails view.
+
+--- COURSE PROCEDURES (4) ---
+
+6.  sp_AddCourse
+    Parameters : @CourseName, @Description, @MaxDegree, @MinDegree
+    Purpose    : Creates a new course. Validates that MaxDegree is
+                 not less than MinDegree before inserting. Returns
+                 the new CourseID.
+
+7.  sp_UpdateCourse
+    Parameters : @CourseID, @CourseName [opt], @Description [opt],
+                 @MaxDegree [opt], @MinDegree [opt]
+    Purpose    : Updates course details. Re-validates the degree
+                 constraint after computing the new effective values
+                 to prevent invalid updates.
+
+8.  sp_DeleteCourse
+    Parameters : @CourseID
+    Purpose    : Deletes a course record. Note: the trigger
+                 trg_PreventCourseDeleteWithQuestions will block
+                 deletion if questions still exist for this course.
+
+9.  sp_SearchCourses
+    Parameters : @CourseName [opt], @MinDegree [opt], @MaxDegree [opt]
+    Purpose    : Searches courses by name (partial match) and/or
+                 degree range. Returns matching course records.
+
+--- INSTRUCTOR-COURSE PROCEDURES (4) ---
+
+10. sp_AssignInstructorToCourse
+    Parameters : @InstructorID, @CourseID, @Year, @BranchID [opt],
+                 @TrackID [opt], @IntakeID [opt]
+    Purpose    : Assigns an instructor to teach a course for a
+                 specific class (year/branch/track/intake). Validates
+                 that the same course-class combination is not already
+                 assigned to prevent duplicate assignments.
+
+11. sp_UpdateInstructorCourse
+    Parameters : @InstructorCourseID, @InstructorID [opt],
+                 @BranchID [opt], @TrackID [opt], @IntakeID [opt]
+    Purpose    : Updates an existing instructor-course assignment.
+                 Allows changing the instructor for a class or
+                 updating the class context details.
+
+12. sp_RemoveInstructorCourse
+    Parameters : @InstructorCourseID
+    Purpose    : Removes an instructor-course assignment record.
+                 Used when correcting assignment errors or when
+                 an instructor is replaced for a class.
+
+13. sp_GetInstructorCourses
+    Parameters : @InstructorID, @Year [opt]
+    Purpose    : Retrieves all courses assigned to an instructor,
+                 optionally filtered by year. Used in the instructor
+                 dashboard to show their teaching load.
+
+--- QUESTION PROCEDURES (5) ---
+
+14. sp_AddQuestion
+    Parameters : @CourseID, @InstructorID, @QuestionText,
+                 @QuestionType
+    Purpose    : Adds a new question to the course question pool.
+                 Validates that the instructor is actually assigned
+                 to the course (enforcing access control) and that
+                 the question type is valid. Returns new QuestionID.
+
+15. sp_UpdateQuestion
+    Parameters : @QuestionID, @InstructorID, @QuestionText [opt],
+                 @QuestionType [opt]
+    Purpose    : Updates an existing question. Validates that the
+                 requesting instructor owns the question, enforcing
+                 the rule that instructors can only edit questions
+                 in their own courses.
+
+16. sp_DeleteQuestion
+    Parameters : @QuestionID, @InstructorID
+    Purpose    : Deletes a question and all its related data (choices
+                 and text answers) in a single transaction. Validates
+                 instructor ownership before deletion.
+
+17. sp_SearchQuestions
+    Parameters : @CourseID, @QuestionType [opt], @Keyword [opt]
+    Purpose    : Searches the question pool for a course, with
+                 optional filters for question type and a keyword
+                 match within the question text. Used by instructors
+                 when manually selecting questions for an exam.
+
+18. sp_GetRandomQuestionsForExam
+    Parameters : @CourseID, @MCQCount, @TFCount, @TextCount
+    Purpose    : Core exam generation procedure. Returns separate
+                 result sets of randomly selected questions for each
+                 type based on the requested counts. Skips a type if
+                 its count is 0. Used for automatic exam assembly.
+
+--- CHOICE PROCEDURES (4) ---
+
+19. sp_AddChoice
+    Parameters : @QuestionID, @ChoiceText, @IsCorrect
+    Purpose    : Adds an answer choice to an MCQ or TF question.
+                 Enforces that TF questions cannot have more than 2
+                 choices. If the new choice is marked correct, all
+                 other choices for the question are automatically
+                 set to incorrect.
+
+20. sp_UpdateChoice
+    Parameters : @ChoiceID, @ChoiceText [opt], @IsCorrect [opt]
+    Purpose    : Updates the text or correctness flag of an existing
+                 choice. Automatically clears other correct flags if
+                 this choice is being marked as correct.
+
+21. sp_DeleteChoice
+    Parameters : @ChoiceID
+    Purpose    : Deletes a single answer choice from a question.
+                 Used when correcting or restructuring MCQ options.
+
+22. sp_GetChoicesByQuestion
+    Parameters : @QuestionID
+    Purpose    : Returns all answer choices for a given question.
+                 Wraps the fn_GetQuestionChoices TVF for easy use
+                 from application code or reports.
+
+--- TEXT ANSWER PROCEDURES (5) ---
+
+23. sp_AddTextAnswer
+    Parameters : @QuestionID, @AcceptedAnswer
+    Purpose    : Adds an accepted answer entry for a Text-type
+                 question. Validates that the question exists and
+                 is of type Text before inserting. A question may
+                 have multiple accepted answer variations.
+
+24. sp_UpdateTextAnswer
+    Parameters : @TextAnswerID, @AcceptedAnswer
+    Purpose    : Updates the accepted answer text for an existing
+                 TextAnswer record. Used when an instructor refines
+                 or corrects the model answer.
+
+25. sp_DeleteTextAnswer
+    Parameters : @TextAnswerID
+    Purpose    : Deletes an accepted answer record. Used when
+                 removing one of multiple accepted variations for
+                 a text question.
+
+26. sp_GetTextAnswers
+    Parameters : @QuestionID
+    Purpose    : Retrieves all accepted answer records for a text
+                 question. Used by instructors when reviewing or
+                 editing model answers.
+
+27. sp_ReviewTextAnswers
+    Parameters : @CourseID
+    Purpose    : Instructor review tool for text question responses.
+                 Compares all student answers to accepted answers
+                 using keyword matching and labels each response as
+                 'Likely Valid' or 'Needs Review'. Helps instructors
+                 quickly identify which responses need manual grading.
+                 Results are sorted with likely-valid answers first.
+
+
+--------------------------------------------------------------------
+SECTION 6: TRIGGERS (3 Objects)
+--------------------------------------------------------------------
+
+1.  trg_PreventCourseDeleteWithQuestions
+    Table : Course
+    Type  : INSTEAD OF DELETE
+    Purpose: Blocks deletion of a course that still has questions
+             in the question pool. Forces instructors or admins to
+             remove all questions from a course before the course
+             itself can be deleted. Protects referential integrity
+             and prevents accidental data loss.
+
+2.  trg_EnforceSingleCorrectChoice
+    Table : Choice
+    Type  : AFTER INSERT
+    Purpose: Automatically ensures only one choice per question is
+             marked as correct. When a new choice is inserted with
+             IsCorrect = 1, this trigger sets IsCorrect = 0 on all
+             other choices for the same question. Maintains the
+             business rule that MCQ/TF questions have exactly one
+             correct answer.
+
+3.  trg_ValidateQuestionType
+    Table : Question
+    Type  : AFTER INSERT, UPDATE
+    Purpose: Additional validation layer that enforces the QuestionType
+             column can only contain 'MCQ', 'TF', or 'Text'. Although
+             a CHECK constraint handles this at the column level, this
+             trigger provides a clear, descriptive error message to
+             application users when an invalid type is attempted.
+
+
+====================================================================
+  TOTAL OBJECTS:
+    Indexes    : 16
+    Views      : 9
+    Scalar Fns : 6
+    TVFs       : 4
+    Procedures : 27
+    Triggers   : 3
+  GRAND TOTAL  : 65 Objects
+====================================================================
