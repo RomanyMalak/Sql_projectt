@@ -31,41 +31,41 @@ IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'ExaminationSystemDB')
     END
 GO
 
-CREATE DATABASE ExaminationSystemDB
+CREATE  DATABASE ExaminationSystemDB
     ON PRIMARY
     (
         NAME     = 'ExamSys_Primary',
-        FILENAME = 'D:\SQL\ExamSys_Primary.mdf',
+        FILENAME = 'C:\SQLData\ExamSys_Primary.mdf',
         SIZE     = 50MB,  MAXSIZE = 500MB,  FILEGROWTH = 10MB
         ),
     FILEGROUP FG_Users
         (
             NAME     = 'ExamSys_Users',
-            FILENAME = 'D:\SQL\ExamSys_Users.ndf',
+            FILENAME = 'C:\SQLData\ExamSys_Users.ndf',
             SIZE     = 20MB,  MAXSIZE = 200MB,  FILEGROWTH = 5MB
             ),
     FILEGROUP FG_Questions
         (
             NAME     = 'ExamSys_Questions',
-            FILENAME = 'C:\SQL\ExamSys_Questions.ndf',
+            FILENAME = 'C:\SQLData\ExamSys_Questions.ndf',
             SIZE     = 50MB,  MAXSIZE = 1GB,    FILEGROWTH = 20MB
             ),
     FILEGROUP FG_Exams
         (
             NAME     = 'ExamSys_Exams',
-            FILENAME = 'D:\SQL\ExamSys_Exams.ndf',
+            FILENAME = 'C:\SQLData\ExamSys_Exams.ndf',
             SIZE     = 50MB,  MAXSIZE = 1GB,    FILEGROWTH = 20MB
             ),
     FILEGROUP FG_Results
         (
             NAME     = 'ExamSys_Results',
-            FILENAME = 'D:\SQL\ExamSys_Results.ndf',
+            FILENAME = 'C:\SQLData\ExamSys_Results.ndf',
             SIZE     = 100MB, MAXSIZE = 2GB,    FILEGROWTH = 50MB
             )
     LOG ON
     (
         NAME     = 'ExamSys_Log',
-        FILENAME = 'C:\SQL\ExamSys_Log.ldf',
+        FILENAME = 'C:\SQLData\ExamSys_Log.ldf',
         SIZE     = 20MB,  MAXSIZE = 500MB,  FILEGROWTH = 10MB
         );
 GO
